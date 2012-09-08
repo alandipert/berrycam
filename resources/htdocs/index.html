@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>BerryCam</title>
+</head>
+<body>
+  <h1>hi, i'm a raspberry pi</h1>
+  <img id="cam"src="/camera.jpg?"/>
+  <p>Updates every 3 seconds.  A <a href="http://github.com/alandipert/berrycam">Clojure</a> joint.</p>
+  <script type="text/javascript">
+    function update() {
+      img = document.getElementById("cam");
+      if(img.complete) {
+        img.src = "/camera.jpg?" + (new Date().getTime());
+      }
+    }
+    setInterval(update, 3000);
+  </script>
+</body>
+</html>

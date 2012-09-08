@@ -1,0 +1,2 @@
+#!/bin/bash
+java -Djava.library.path=/usr/lib/jni -cp $HOME/.m2/repository/au/edu/jcu/v4l4j/0.9.0/v4l4j-0.9.0.jar:$HOME/.m2/repository/org/clojure/clojure/1.4.0/clojure-1.4.0.jar:src clojure.main -e "(do (require 'berrycam.core) (berrycam.core/listen! 8080 \"resources/htdocs\"))"
