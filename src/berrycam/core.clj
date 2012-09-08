@@ -54,7 +54,7 @@
     (spit wrt (str (build-headers (codes code) (mimes "txt")) (error code)))))
 
 (defn send-capture [^Socket sock]
-  (binding [cam/*max-capture-interval-ms* 10000]
+  (binding [cam/*max-capture-interval-ms* 5000]
     (with-open [os (.getOutputStream sock)]
       (let [{:keys [^BufferedImage buf len]} @(cam/capture! "/dev/video0")
             headers ^String (build-headers

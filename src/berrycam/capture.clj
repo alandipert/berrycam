@@ -8,7 +8,7 @@
 
 (def captures (atom {}))
 
-(def last-captures (atom {}))
+(def last-capture-times (atom {}))
 
 (def ^:dynamic *max-capture-interval-ms* 10000)
 
@@ -37,6 +37,7 @@
 
 (defn init-capture
   [device-path]
+  (swap! last-capture-times assoc device-path 0)
   (let [latest (promise)
         agt (agent nil)
         vd (VideoDevice. device-path)
@@ -45,18 +46,17 @@
               (reify CaptureCallback
                 (^void exceptionReceived [_ ^V4L4JException e])
                 (^void nextFrame [_ ^VideoFrame frame]
-                  (if-let [last-capture-time (get @last-captures device-path)]
-                    (do (< *max-capture-interval-ms* (- (System/currentTimeMillis) last-capture-time))
-                        (send-off agt (fn [& _]
-                                        (let [buf (.getBufferedImage frame)
-                                              len (.getFrameLength frame)]
-                                          (.recycle frame)
-                                          (swap! last-captures assoc device-path (System/currentTimeMillis))
-                                          {:buf buf :len len})))
-                        (when-not (realized? latest)
-                          (await agt)
-                          (deliver latest agt)))
-                    (swap! last-captures (- (System/currentTimeMillis) *max-capture-interval-ms*)))))))]
+                  (if-let [last-capture-time (get @last-capture-times device-path)]
+                    (if (< *max-capture-interval-ms* (- (System/currentTimeMillis) last-capture-time))
+                      (do (send-off agt (fn [& _]
+                                          (let [buf (.getBufferedImage frame)
+                                                len (.getFrameLength frame)]
+                                            (.recycle frame)
+                                            (swap! last-capture-times assoc device-path (System/currentTimeMillis))
+                                            {:buf buf :len len})))
+                          (when-not (realized? latest)
+                            (await agt)
+                            (deliver latest agt)))))))))]
     (.startCapture fg)
     (swap! captures assoc device-path {:vd vd :fg fg :latest latest})))
 
