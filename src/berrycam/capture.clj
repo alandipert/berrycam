@@ -1,5 +1,5 @@
 (ns berrycam.capture
-  (:import (au.edu.jcu.v4l4j CaptureCallback JPEGFrameGrabber ImageFormat VideoDevice VideoFrame V4L4JConstants)
+  (:import (au.edu.jcu.v4l4j CaptureCallback FrameGrabber JPEGFrameGrabber ImageFormat VideoDevice VideoFrame V4L4JConstants)
            (au.edu.jcu.v4l4j.exceptions V4L4JException)
            (java.awt.image BufferedImage)
            (java.awt Font FontMetrics Color Graphics2D))
@@ -65,9 +65,9 @@ initializing the device if necessary."
   [device-path]
   (let [{:keys [vd fg]} (get @captures device-path)]
     (swap! captures dissoc device-path)
-    (.stopCapture fg)
-    (.releaseFrameGrabber vd)
-    (.release vd)))
+    (.stopCapture ^FrameGrabber fg)
+    (.releaseFrameGrabber ^VideoDevice vd)
+    (.release ^VideoDevice vd)))
 
 (defn stop-all! []
   (doseq [device-path (keys @captures)]

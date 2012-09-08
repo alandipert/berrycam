@@ -2,17 +2,17 @@
   (:require [clojure.java.io :as io]
             [clojure.string :as str]
             [berrycam.capture :as cam])
-  (:import (java.net ServerSocket URLDecoder)
+  (:import (java.net Socket ServerSocket URLDecoder)
            (java.io File FileInputStream ByteArrayOutputStream)
            java.awt.image.BufferedImage
            javax.imageio.ImageIO))
 
-(def codes {200 "HTTP/1.0 200 OK" 
+(def codes {200 "HTTP/1.0 200 OK"
             404 "HTTP/1.0 404 Not Found"
             403 "HTTP/1.0 403 Forbidden"})
 
-(def mimes {"html" "Content-type: text/html" 
-            "png"  "Content-type: image/png" 
+(def mimes {"html" "Content-type: text/html"
+            "png"  "Content-type: image/png"
             "txt"  "Content-type: text/plain"
             "jpeg"  "Content-type: image/jpeg"})
 
@@ -26,7 +26,7 @@
 (defn log [& info]
   (println (str/join "\t" info)))
 
-(defn file-bytes [file]
+(defn file-bytes [^File file]
   (with-open [input (FileInputStream. file)
               output (ByteArrayOutputStream.)]
     (loop [buffer (make-array Byte/TYPE 1024)
@@ -36,38 +36,38 @@
         (recur buffer (.read input buffer))))
     (.toByteArray output)))
 
-(defn send-resource [sock file]
+(defn send-resource [^Socket sock ^File file]
   "Open the socket's output stream and send headers and content"
   (with-open [os (.getOutputStream sock)]
     (let [path (.getAbsolutePath file)
-          headers (build-headers 
-                    (codes 200) 
-                    (mimes (last (str/split path #"\.")) "txt")
-                    (format "Content-length: %s" (.length file)))]
-      (.write os (.getBytes headers) 0 (count headers))
+          headers (build-headers
+                   (codes 200)
+                   (mimes (last (str/split path #"\.")) "txt")
+                   (format "Content-length: %s" (.length file)))]
+      (.write os (.getBytes ^String headers) 0 (count headers))
       (.write os (file-bytes file) 0 (.length file))
       (log (java.util.Date.) (.getInetAddress sock) path))))
 
-(defn send-error [sock code]
+(defn send-error [^Socket sock code]
   "Open the socket's output stream and send header and error message"
   (with-open [wrt (io/writer (.getOutputStream sock))]
     (spit wrt (str (build-headers (codes code) (mimes "txt")) (error code)))))
 
-(defn send-capture [sock]
+(defn send-capture [^Socket sock]
   (with-open [os (.getOutputStream sock)]
-    (let [{:keys [buf len]} @(cam/capture! "/dev/video0")
-          headers (build-headers
-                   (codes 200)
-                   (mimes "jpeg")
-                   (format "Content-length %s" len))]
+    (let [{:keys [^BufferedImage buf len]} @(cam/capture! "/dev/video0")
+          headers ^String (build-headers
+                           (codes 200)
+                           (mimes "jpeg")
+                           (format "Content-length %s" len))]
       (.write os (.getBytes headers) 0 (count headers))
       (ImageIO/write buf "jpeg" os)
       (log (java.util.Date.) (.getInetAddress sock) "/camera.jpg"))))
 
-(defn handle-request [sock doc-root]
+(defn handle-request [^Socket sock doc-root]
   "Send the file if it exists, or a 404"
   (with-open [rdr (io/reader (.getInputStream sock))]
-    (let [uri (second (str/split (first (line-seq rdr)) #"\s+"))]
+    (let [uri ^String (second (str/split (first (line-seq rdr)) #"\s+"))]
       (if (.startsWith uri "/camera.jpg")
         (send-capture sock)
         (if (or (= uri "/") (= uri "/index.html"))
