@@ -16,19 +16,19 @@
                         V4L4JConstants/STANDARD_WEBCAM
                         60))
 
-(defn ^BufferedImage timestamp [^BufferedImage old]
-  (let [[w h] [(.getWidth old) (.getHeight old)]
-        new (BufferedImage. w h BufferedImage/TYPE_INT_ARGB)
-        date (str (java.util.Date.))
-        g2d (doto ^Graphics2D (.createGraphics new)
-              (.drawImage old, 0, 0, nil)
-              (.setPaint Color/green)
-              (.setFont (Font. "Serif", Font/BOLD, 20)))
-        fm (.getFontMetrics g2d)]
-    (doto g2d
-      (.drawString date (- (.stringWidth fm date) w 5) (.getHeight fm))
-      (.dispose g2d))
-    new))
+;; (defn ^BufferedImage timestamp [^BufferedImage old]
+;;   (let [[w h] [(.getWidth old) (.getHeight old)]
+;;         new (BufferedImage. w h BufferedImage/TYPE_INT_ARGB)
+;;         date (str (java.util.Date.))
+;;         g2d (doto ^Graphics2D (.createGraphics new)
+;;               (.drawImage old, 0, 0, nil)
+;;               (.setPaint Color/green)
+;;               (.setFont (Font. "Serif", Font/BOLD, 20)))
+;;         fm (.getFontMetrics g2d)]
+;;     (doto g2d
+;;       (.drawString date (- (.stringWidth fm date) w 5) (.getHeight fm))
+;;       (.dispose g2d))
+;;     new))
 
 (defn init-capture
   [device-path]

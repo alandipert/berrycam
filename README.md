@@ -2,7 +2,7 @@
 
 A small Clojure webcam server for the Raspberry Pi.
 
-[See a live demo!](http://pi.tailrecursion.com/).
+[See a live demo!](http://pi.tailrecursion.com/)
 
 ## Usage
 

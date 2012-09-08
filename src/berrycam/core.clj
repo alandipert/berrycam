@@ -53,10 +53,6 @@
   (with-open [wrt (io/writer (.getOutputStream sock))]
     (spit wrt (str (build-headers (codes code) (mimes "txt")) (error code)))))
 
-(defn check-index [uri]
-  "Check if we should serve out default index page"
-  (if (.endsWith "/" uri) (str uri "index.html") uri))
-
 (defn send-capture [sock]
   (with-open [os (.getOutputStream sock)]
     (let [{:keys [buf len]} @(cam/capture! "/dev/video0")
@@ -74,12 +70,9 @@
     (let [uri (second (str/split (first (line-seq rdr)) #"\s+"))]
       (if (.startsWith uri "/camera.jpg")
         (send-capture sock)
-        (let [file (File. (str doc-root (check-index (str/replace (URLDecoder/decode uri) #"\.{2,}" ""))))]
-          (if (.exists file)
-            (if (.isDirectory file)
-              (send-error sock 403)
-              (send-resource sock file))
-            (send-error sock 404)))))))
+        (if (or (= uri "/") (= uri "/index.html"))
+          (send-resource sock (File. (str doc-root "/index.html")))
+          (send-error sock 404))))))
 
 (def listeners (atom #{}))
 
@@ -87,9 +80,11 @@
   [port doc-root]
   (future
     (let [socket (ServerSocket. port)]
-      (swap! listeners conj port)
       (while (@listeners port)
-        (handle-request (.accept socket) doc-root)))))
+        (try
+          (handle-request (.accept socket) doc-root)
+          (catch Throwable t
+            (log (java.util.Date.) (.getMessage t))))))))
 
 (defn unlisten!
   [port]
