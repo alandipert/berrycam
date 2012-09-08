@@ -74,24 +74,12 @@
           (send-resource sock (File. (str doc-root "/index.html")))
           (send-error sock 404))))))
 
-(def listeners (atom #{}))
-
-(defn listen!
-  [port doc-root]
-  (future
-    (let [socket (ServerSocket. port)]
-      (while (@listeners port)
-        (try
-          (handle-request (.accept socket) doc-root)
-          (catch Throwable t
-            (log (java.util.Date.) (.getMessage t))))))))
-
-(defn unlisten!
-  [port]
-  (swap! listeners disj port))
-
 (defn -main [& args]
-  (let [[port doc-root] args]
-    (println "Listening on" port)
-    (println "Serving" doc-root)
-    (listen! port doc-root)))
+  (let [[port doc-root] args
+        socket (ServerSocket. port)]
+    (println "Listening on" port "serving" doc-root)
+    (while true
+      (try
+        (handle-request (.accept socket) doc-root)
+        (catch Throwable t
+          (log (java.util.Date.) (.getMessage t)))))))
