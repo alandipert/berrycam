@@ -1,11 +1,16 @@
 (ns berrycam.capture
-  (:import (au.edu.jcu.v4l4j CaptureCallback FrameGrabber JPEGFrameGrabber ImageFormat VideoDevice VideoFrame V4L4JConstants)
+  (:import (au.edu.jcu.v4l4j CaptureCallback FrameGrabber ImageFormat
+                             JPEGFrameGrabber V4L4JConstants VideoDevice
+                             VideoFrame)
            (au.edu.jcu.v4l4j.exceptions V4L4JException)
-           (java.awt.image BufferedImage)
-           (java.awt Font FontMetrics Color Graphics2D))
+           (java.awt.image BufferedImage))
   (:require [clojure.java.io :as io]))
 
 (def captures (atom {}))
+
+(def last-captures (atom {}))
+
+(def ^:dynamic *max-capture-interval-ms* 10000)
 
 (defn ^JPEGFrameGrabber jpeg-grabber
   [^VideoDevice vd]
@@ -40,14 +45,18 @@
               (reify CaptureCallback
                 (^void exceptionReceived [_ ^V4L4JException e])
                 (^void nextFrame [_ ^VideoFrame frame]
-                  (send-off agt (fn [& _]
-                                  (let [buf (.getBufferedImage frame)
-                                        len (.getFrameLength frame)]
-                                    (.recycle frame)
-                                    {:buf buf :len len})))
-                  (when-not (realized? latest)
-                    (await agt)
-                    (deliver latest agt))))))]
+                  (if-let [last-capture-time (get @last-captures device-path)]
+                    (do (< *max-capture-interval-ms* (- (System/currentTimeMillis) last-capture-time))
+                        (send-off agt (fn [& _]
+                                        (let [buf (.getBufferedImage frame)
+                                              len (.getFrameLength frame)]
+                                          (.recycle frame)
+                                          (swap! last-captures assoc device-path (System/currentTimeMillis))
+                                          {:buf buf :len len})))
+                        (when-not (realized? latest)
+                          (await agt)
+                          (deliver latest agt)))
+                    (swap! last-captures (- (System/currentTimeMillis) *max-capture-interval-ms*)))))))]
     (.startCapture fg)
     (swap! captures assoc device-path {:vd vd :fg fg :latest latest})))
 

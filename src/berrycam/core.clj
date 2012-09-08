@@ -54,15 +54,16 @@
     (spit wrt (str (build-headers (codes code) (mimes "txt")) (error code)))))
 
 (defn send-capture [^Socket sock]
-  (with-open [os (.getOutputStream sock)]
-    (let [{:keys [^BufferedImage buf len]} @(cam/capture! "/dev/video0")
-          headers ^String (build-headers
-                           (codes 200)
-                           (mimes "jpeg")
-                           (format "Content-length %s" len))]
-      (.write os (.getBytes headers) 0 (count headers))
-      (ImageIO/write buf "jpeg" os)
-      (log (java.util.Date.) (.getInetAddress sock) "/camera.jpg"))))
+  (binding [cam/*max-capture-interval-ms* 10000]
+    (with-open [os (.getOutputStream sock)]
+      (let [{:keys [^BufferedImage buf len]} @(cam/capture! "/dev/video0")
+            headers ^String (build-headers
+                             (codes 200)
+                             (mimes "jpeg")
+                             (format "Content-length %s" len))]
+        (.write os (.getBytes headers) 0 (count headers))
+        (ImageIO/write buf "jpeg" os)
+        (log (java.util.Date.) (.getInetAddress sock) "/camera.jpg")))))
 
 (defn handle-request [^Socket sock doc-root]
   "Send the file if it exists, or a 404"
