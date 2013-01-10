@@ -2,8 +2,6 @@
 
 A small Clojure webcam server for the Raspberry Pi.
 
-[See a live demo!](http://pi.tailrecursion.com/)
-
 ## Usage
 
 * Use the [Soft-float Debian “wheezy” SD card image](http://www.raspberrypi.org/downloads)
